@@ -188,10 +188,7 @@ class ServerSocket:
                 file_name = self.receive()
                 self.removeImage(DIR + file_name)
 
-def main():
-    HOST = "127.0.0.1"
-    PORT = 12345
-
+def startServer(HOST, PORT):
     s_sock = ServerSocket(HOST, PORT)
     s_sock.bindSocket()
     s_sock.listen()
@@ -200,6 +197,9 @@ def main():
         s_sock.acceptClient()
         thread = threading.Thread(target=s_sock.clientHandler)
         thread.start()
+
+def main():
+    startServer("127.0.0.1", 12345)
 
 if __name__ == "__main__":
     main()

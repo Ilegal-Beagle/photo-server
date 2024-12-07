@@ -124,6 +124,7 @@ def getUserOption(min_value, max_value):
                 break
         except ValueError:
             print("Please Enter a valid integer")
+    return option
 
 def main():
     HOST = "127.0.0.1"
