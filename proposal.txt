@@ -1,0 +1,23 @@
+Concept
+    A server that stores photos and a client that can request the photos, add photos and delete photos.
+
+What does the client do?
+    the client will ask what the user wants to do with the server.
+    depending on what it chooses, the client will send the choice
+    and the necessary information to the server.
+
+what does the server do?
+    the server will get information from the client on what to do.
+    The server will be able to add new images to the server, remove
+    images from the server, and add tags to images. It will also
+    send back image files when requested by the client.
+
+Possible programming languages to be used
+    1. Lua
+        a. OpenResty
+        b. Lapis
+        c. lua threads / lua lanes
+    2. C/C++
+    3. CSS
+    4. HTML
+    5. JS
