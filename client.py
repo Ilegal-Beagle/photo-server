@@ -31,7 +31,10 @@ class TCP:
         self.sock.sendall(message.encode())
 
     def receive(self, bytes):
-        return self.sock.recv(bytes).decode()
+        try:
+            return self.sock.recv(bytes).decode()
+        except UnicodeDecodeError:
+            print("Couldnt decode message recved.")
 
     def receiveImage(self, file_name="serverImage.JPG"):
         data_size = self.receive(1024)

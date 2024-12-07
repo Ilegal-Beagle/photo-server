@@ -25,27 +25,20 @@ class ServerSocket:
         self.sock.listen()
 
     def acceptClient(self):
-        self.c_sock, addr = self.sock.accept()
-        print(f"accepted client connection {addr[1]}")
+        self.c_sock, self.addr = self.sock.accept()
+        print(f"accepted client connection {self.addr[1]}")
 
     def send(self, message):
         self.c_sock.sendall(message.encode())
 
     def receive(self, buff_size=1024):
-        return self.c_sock.recv(buff_size).decode()
+        try:
+            return self.c_sock.recv(buff_size).decode()
+        except:
+            print("Couldnt decode message.")
 
     def createNewImage(self):
         PHOTO_DIR = "serverFiles/"
-
-        # lock other threads from writing
-        
-        # open sql connection
-        database = sqlite3.connect("photo_server.db")
-        cursor = database.cursor()
-
-        # create table for photos in db
-        cursor.execute("""CREATE TABLE IF NOT EXISTS
-            photo(file_name, file_dir, upload_date, tags)""")
 
         # receive first packet
         received_packet = self.receive()
@@ -54,11 +47,19 @@ class ServerSocket:
         size = int(size)
         print(name, size, date, tags)
 
-        # create new entry to database NEEDS WRITE LOCK
+        # lock other threads from writing
         with write_lock:
-            cursor.execute("INSERT INTO photo values(?,?,?,?)",
-                            (name, dir, date, tags))
-            database.commit()
+            # open sql connection
+            with sqlite3.connect("photo_server.db") as db:
+                cur = db.cursor()
+                # create table for photos in db
+                cur.execute("""CREATE TABLE IF NOT EXISTS
+                    photo(file_name, file_dir, upload_date, tags)""")
+
+                # create new entry to database
+                cur.execute("INSERT INTO photo values(?,?,?,?)",
+                                (name, dir, date, tags))
+                db.commit()
 
         # wait to recieve the data
         data = self.c_sock.recv(size)
@@ -71,7 +72,6 @@ class ServerSocket:
 
         # send confirmation message and close database
         self.send("message received!")
-        database.close()
 
     def sendImage(self, file_dir):
         binary_data = file.readFileBinary(file_dir)
@@ -85,9 +85,7 @@ class ServerSocket:
 
     # loops sendImage for all dirs in matching_files, sends "None" to signify end
     def sendImages(self, matching_files):
-        print(matching_files)
         for file_dir in matching_files:
-            print(file_dir)
             self.sendImage(file_dir)
         self.send("None")
 
@@ -96,7 +94,6 @@ class ServerSocket:
         with sqlite3.connect("photo_server.db") as db:
             cur = db.cursor()
             rows = cur.execute("SELECT file_dir FROM photo WHERE file_name=?", (name,))
-        
         rows = rows.fetchall()
         matching_files = self.listMatchingFilesFrom(rows)
         return matching_files
@@ -158,37 +155,52 @@ class ServerSocket:
 
     def clientHandler(self):
         DIR = "serverFiles/"
-        # execute client requests
-        option = self.receive()
-        print(option)
-        match option: # OPTION CHOICE 1
-            case '1':
-                self.createNewImage()
-            case '2':
-                option = self.receive()
-                print(option)
-                matching_files = []
-                match option: # OPTION CHOICE 2
-                    case "1":
-                        name = self.receive()
-                        matching_files = self.searchByName(name)
-                    case "2":
-                        date = self.receive()
-                        matching_files = self.searchByDate(date)
-                    case "3":
-                        tag = self.receive()
-                        matching_files = self.searchByTags(tag)
-                    case "4":
-                        pass
-                    case _:
-                        print("Invalid choice received :(")
-                if option != "4":
-                    self.sendImages(matching_files)
-            case '3':
-                file_name = self.receive()
-                self.removeImage(DIR + file_name)
 
-def startServer(HOST, PORT):
+        while True:
+            option = self.receive()
+            print(option)
+
+            match option:
+                case '1':
+                    self.createNewImage()
+ 
+                case '2':
+                    option = self.receive() # get option
+                    print(option)
+                    matching_files = []
+                    match option:
+                        case "1":
+                            name = self.receive()
+                            print(name)
+                            matching_files = self.searchByName(name)
+                        case "2":
+                            date = self.receive()
+                            print(date)
+                            matching_files = self.searchByDate(date)
+                        case "3":
+                            tag = self.receive()
+                            print(tag)
+                            matching_files = self.searchByTags(tag)
+                        case "4":
+                            pass
+                        case _:
+                            print("Invalid choice received :(")
+
+                    if option != "4":
+                        self.sendImages(matching_files)
+
+                case '3':
+                    file_name = self.receive()
+                    self.removeImage(DIR + file_name)
+ 
+                case "4":
+                    print(f"closing client connection {self.addr[0]}")
+                    self.c_sock.close()
+                    break
+
+
+def main():
+    HOST, PORT = ["127.0.0.1", 12345]
     s_sock = ServerSocket(HOST, PORT)
     s_sock.bindSocket()
     s_sock.listen()
@@ -197,9 +209,6 @@ def startServer(HOST, PORT):
         s_sock.acceptClient()
         thread = threading.Thread(target=s_sock.clientHandler)
         thread.start()
-
-def main():
-    startServer("127.0.0.1", 12345)
 
 if __name__ == "__main__":
     main()
