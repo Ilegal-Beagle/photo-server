@@ -1,15 +1,13 @@
 # SERVER.PY
 
-# TODO
-# implement
-#    deleting image from server
-
 import socket
 import threading
 import sqlite3
 import time
 import os
 import file
+
+write_lock = threading.Lock()
 
 class ServerSocket:
     DELIMITER = "||DELIMITER||"
@@ -190,8 +188,6 @@ class ServerSocket:
                 file_name = self.receive()
                 self.removeImage(DIR + file_name)
 
-write_lock = threading.Lock()
-
 def main():
     HOST = "127.0.0.1"
     PORT = 12345
@@ -205,4 +201,5 @@ def main():
         thread = threading.Thread(target=s_sock.clientHandler)
         thread.start()
 
-main()
+if __name__ == "__main__":
+    main()
