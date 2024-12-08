@@ -8,6 +8,9 @@ This should run perfectly fine on JuperLab, but just in case, you will need Pyth
 2. Run the server `python3 server.py`
 3. Run a client `python3 client.py`
 
+**Note:** I have attached a SQLite database for testing the functions of the server.
+But you can leave it out and it'll make a new database.
+
 # Challenges
 * Trying to use Lua at fist
     * had to switch to python due to limitations of language
@@ -23,3 +26,4 @@ This should run perfectly fine on JuperLab, but just in case, you will need Pyth
     * ask for specific photo by name
     * ask for all photos by date
     * ask for all photos that have a tag attached to them
+* Client can also delete a photo from the server by entering the name of the file
