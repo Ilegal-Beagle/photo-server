@@ -33,46 +33,53 @@ class ServerSocket:
 
     def receive(self, buff_size=1024):
         try:
-            return self.c_sock.recv(buff_size).decode()
+            message = self.c_sock.recv(buff_size)
+            return message.decode()
+            
         except:
-            print("Couldn't decode received message.")
+            print(f"Couldn't decode received message: {message[:1]}")
+
+    def receiveImage(self, image_size):
+        data = b''
+        data += self.c_sock.recv(image_size)
+        while True:
+            if len(data) < image_size:
+                data += self.c_sock.recv(image_size)
+            else:
+                return data
 
     def createNewImage(self):
         PHOTO_DIR = "serverFiles/"
 
-        # receive first packet
+        # get photo data
         received_packet = self.receive()
-        print(received_packet)
         name, size, date, tags = received_packet.split(self.DELIMITER)
         dir = PHOTO_DIR + name
         size = int(size)
-        print(name, size, date, tags)
 
         # lock other threads from writing
+        # open sql connection and create table
         with write_lock:
-            # open sql connection
             with sqlite3.connect("photo_server.db") as db:
                 cur = db.cursor()
-                # create table for photos in db
-                cur.execute("""CREATE TABLE IF NOT EXISTS
-                    photo(file_name, file_dir, upload_date, tags)""")
+                cur.execute("""CREATE TABLE IF NOT EXISTS photo(file_name, file_dir, upload_date, tags)""")
+                
+                # check if there is a file that matches the name given
+                # if not, create new entry to database
+                result = cur.execute("SELECT * FROM photo WHERE file_name=?", (name,)).fetchone()
+                if result == None:
+                    self.send("send data") # let client know server is ready to receive data
+                    cur.execute("INSERT INTO photo values(?,?,?,?)", (name, dir, date, tags))
+                    db.commit()
 
-                # create new entry to database
-                cur.execute("INSERT INTO photo values(?,?,?,?)",
-                                (name, dir, date, tags))
-                db.commit()
+                    data = self.receiveImage(size)
 
-        # wait to recieve the data
-        data = self.c_sock.recv(size)
-        if not data:
-            print("Data was not recieved")
-            return
+                    file.writeBinaryToFile(PHOTO_DIR+name, data)
 
-        photo_path = PHOTO_DIR + name
-        file.writeBinaryToFile(photo_path, data)
-
-        # send confirmation message and close database
-        self.send(f"{name} has been added to the server!")
+                    self.send(f"{name} has been added to the server!")
+                else:
+                    self.send("dont send data")
+                    self.send(f"{name} is already in the server!")
 
     def sendImage(self, file_dir):
         binary_data = file.readFileBinary(file_dir)
@@ -160,6 +167,7 @@ class ServerSocket:
 
         while True:
             option = self.receive()
+            print(option)
             match option:
                 case '1':
                     self.createNewImage() 

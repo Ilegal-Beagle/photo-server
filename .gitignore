@@ -1,3 +1,6 @@
 __pycache__/
 SERVER*
 !/serverFiles/*
+*.png
+*.jpg
+*.JPG

@@ -4,6 +4,8 @@ import socket
 import time
 import datetime
 import file
+from os import path
+from re import search
 
 # gets the date from the computer YYYY-MM-DD
 #returns it as a STRING
@@ -36,26 +38,35 @@ class TCP:
         except UnicodeDecodeError:
             print("Couldnt decode message recved.")
 
-    def receiveImage(self, file_name="serverImage.JPG"):
-        data_size = self.receive(1024)
-        if data_size == "None": # bound check
-            return False
+    def receiveImage(self, image_size):
+        data = b''
+        data += self.sock.recv(image_size)
+        while True:
+            print(len(data), image_size)
+            if len(data) < image_size:
+                data += self.sock.recv(image_size)
+            else:
+                return data
 
-        data_size = int(data_size)
-        data = self.sock.recv(data_size)
-
+    def saveImageAs(self, data_size, file_name="serverImage.JPG"):
+        data = self.receiveImage(data_size)
         file.writeBinaryToFile("SERVER"+file_name, data)
-        return True
+        print("saved!")
 
     # Loops receiveImage until there are no more files recved
     def receiveImages(self):
         count = 0
         while True:
-            name = str(count) + ".JPG"
-            success = self.receiveImage(name)
-            if not success:
+            try:
+                data_size = int(self.receive())
+            except ValueError:
+                print("err")
                 break
+            print("wah hwa")
+            name = str(count) + ".JPG"
+            self.saveImageAs(data_size, name)
             count = count + 1
+
         print("Received all images!")
 
     def sendImage(self, file_name, tags):
@@ -67,17 +78,19 @@ class TCP:
         upload_date = getDate()
         
         # send metadata
-        packet = (file_name + DELIM +
-                data_size + DELIM +
-                upload_date + DELIM +
-                tags)
-
+        packet = (file_name + DELIM + data_size + DELIM + upload_date + DELIM + tags)
         self.send(packet)
 
-        time.sleep(.01)
+        time.sleep(0.1)
 
-        # send  data
-        self.sock.sendall(binary_data)
+        confirmation = self.receive()
+        print(confirmation)
+        if confirmation == "send data":
+            time.sleep(.01)
+            print("fdsjkalfsldjkfhsldkjgzsdklgsdzxk, dljsrnbiu4")
+            self.sock.sendall(binary_data)
+
+        print(self.receive()) # confirmation message
 
     def getSearchParameters(self, option):
         match option: # OPTION CHOICE 2
@@ -136,6 +149,7 @@ def main():
     tcp.connect()
 
     printTitle()
+    tcp.sock.settimeout(2)
 
     while True:
         printMenu()
@@ -144,10 +158,16 @@ def main():
 
         match option: # OPTION CHOICE 1
             case '1':
-                file_name = input("Enter file name: ")
-                tags = input("Enter tags to attach to photo (hit enter if none): ")
-                tcp.sendImage(file_name, tags)
-                print(tcp.receive()) # confirmation message
+                while True:
+                    file_name = input("Enter file name: ")
+                    if (path.exists(file_name) and
+                        file_name.endswith((".png", ".jpg", ".jpeg", ".JPG"))):
+                        tags = input("Enter tags to attach to photo (hit enter if none): ")
+                        tcp.sendImage(file_name, tags)
+                        break
+                    else:
+                        print("File not found, or file type isnt supported.\n"+
+                              "please enter a file in this directory")
             case '2':
                 printSearchMenu()
                 option = getUserOption(1, 3)
@@ -157,6 +177,7 @@ def main():
             case '3':
                 file_name = input("Enter file name: ")
                 tcp.send(file_name)
+                print(tcp.receive())
             case '4':
                 print("Closing connection to server")
                 break
