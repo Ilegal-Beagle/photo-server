@@ -35,13 +35,14 @@ class ServerSocket:
         try:
             return self.c_sock.recv(buff_size).decode()
         except:
-            print("Couldnt decode message.")
+            print("Couldn't decode received message.")
 
     def createNewImage(self):
         PHOTO_DIR = "serverFiles/"
 
         # receive first packet
         received_packet = self.receive()
+        print(received_packet)
         name, size, date, tags = received_packet.split(self.DELIMITER)
         dir = PHOTO_DIR + name
         size = int(size)
@@ -71,7 +72,7 @@ class ServerSocket:
         file.writeBinaryToFile(photo_path, data)
 
         # send confirmation message and close database
-        self.send("message received!")
+        self.send(f"{name} has been added to the server!")
 
     def sendImage(self, file_dir):
         binary_data = file.readFileBinary(file_dir)
@@ -85,6 +86,7 @@ class ServerSocket:
 
     # loops sendImage for all dirs in matching_files, sends "None" to signify end
     def sendImages(self, matching_files):
+        print(f"there is {len(matching_files)} in this list")
         for file_dir in matching_files:
             self.sendImage(file_dir)
         self.send("None")
@@ -158,29 +160,19 @@ class ServerSocket:
 
         while True:
             option = self.receive()
-            print(option)
-
             match option:
                 case '1':
-                    self.createNewImage()
- 
+                    self.createNewImage() 
                 case '2':
                     option = self.receive() # get option
-                    print(option)
-                    matching_files = []
+                    value = self.receive() # get search parameter
                     match option:
                         case "1":
-                            name = self.receive()
-                            print(name)
-                            matching_files = self.searchByName(name)
+                            matching_files = self.searchByName(value)
                         case "2":
-                            date = self.receive()
-                            print(date)
-                            matching_files = self.searchByDate(date)
+                            matching_files = self.searchByDate(value)
                         case "3":
-                            tag = self.receive()
-                            print(tag)
-                            matching_files = self.searchByTags(tag)
+                            matching_files = self.searchByTags(value)
                         case "4":
                             pass
                         case _:
@@ -188,11 +180,9 @@ class ServerSocket:
 
                     if option != "4":
                         self.sendImages(matching_files)
-
                 case '3':
                     file_name = self.receive()
                     self.removeImage(DIR + file_name)
- 
                 case "4":
                     print(f"closing client connection {self.addr[0]}")
                     self.c_sock.close()

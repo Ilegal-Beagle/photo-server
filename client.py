@@ -30,7 +30,7 @@ class TCP:
     def send(self, message):
         self.sock.sendall(message.encode())
 
-    def receive(self, bytes):
+    def receive(self, bytes=1024):
         try:
             return self.sock.recv(bytes).decode()
         except UnicodeDecodeError:
@@ -91,9 +91,6 @@ class TCP:
                 tag = input("Enter tag: ")
                 self.send(tag)
 
-    def removeImage(self):
-        pass
-
 def printTitle():
     ESC = "\x1b"
     BOLD = ESC + "[1m"
@@ -150,6 +147,7 @@ def main():
                 file_name = input("Enter file name: ")
                 tags = input("Enter tags to attach to photo (hit enter if none): ")
                 tcp.sendImage(file_name, tags)
+                print(tcp.receive()) # confirmation message
             case '2':
                 printSearchMenu()
                 option = getUserOption(1, 3)
