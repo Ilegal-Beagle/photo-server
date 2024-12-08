@@ -82,10 +82,11 @@ class ServerSocket:
                     self.send(f"{name} is already in the server!")
 
     def sendImage(self, file_dir):
-        binary_data = file.readFileBinary(file_dir)
+        try:
+            binary_data = file.readFileBinary(file_dir)
+        except FileNotFoundError:
+            raise FileNotFoundError 
         data_size = str(len(binary_data))
-        _, file_name = file_dir.split('/')
-        print(file_name)
         
         self.send(data_size)
         time.sleep(.01)
@@ -93,9 +94,14 @@ class ServerSocket:
 
     # loops sendImage for all dirs in matching_files, sends "None" to signify end
     def sendImages(self, matching_files):
-        print(f"there is {len(matching_files)} in this list")
+        print(matching_files)
         for file_dir in matching_files:
-            self.sendImage(file_dir)
+            try:
+                self.sendImage(file_dir)
+            except:
+                print("file does not exist in server, skipping.")
+                self.send("None")
+                return
         self.send("None")
 
     # all search functions return a list of strings containing file_dirs

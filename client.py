@@ -42,16 +42,15 @@ class TCP:
         data = b''
         data += self.sock.recv(image_size)
         while True:
-            print(len(data), image_size)
-            if len(data) < image_size:
-                data += self.sock.recv(image_size)
+            recv = image_size - len(data)
+            if recv != 0:
+                data += self.sock.recv(recv)
             else:
                 return data
 
     def saveImageAs(self, data_size, file_name="serverImage.JPG"):
         data = self.receiveImage(data_size)
         file.writeBinaryToFile("SERVER"+file_name, data)
-        print("saved!")
 
     # Loops receiveImage until there are no more files recved
     def receiveImages(self):
@@ -60,14 +59,14 @@ class TCP:
             try:
                 data_size = int(self.receive())
             except ValueError:
-                print("err")
                 break
-            print("wah hwa")
+            
             name = str(count) + ".JPG"
             self.saveImageAs(data_size, name)
+            print("made file")
             count = count + 1
 
-        print("Received all images!")
+        print("\x1b[1m\nReceived all images!\x1b[22m\n")
 
     def sendImage(self, file_name, tags):
         DELIM = "||DELIMITER||"

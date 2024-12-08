@@ -7,6 +7,11 @@ def writeBinaryToFile(photo_path, data):
 # gives the binary contents of file
 # returns string of contents and string of size
 def readFileBinary(file_name):
-    with open(file_name, mode='rb') as file:
-        binary_data = file.read()
-    return binary_data
+    try:
+        file = open(file_name, mode='rb')
+    except FileNotFoundError:
+        raise FileNotFoundError
+    else:
+        with open(file_name, mode='rb') as file:
+            binary_data = file.read()
+        return binary_data
