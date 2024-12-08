@@ -15,3 +15,11 @@ This should run perfectly fine on JuperLab, but just in case, you will need Pyth
         * threads could not take in client object
 * Undestanding how to send images over a TCP connection
 * Learning to SQLite to keep track of the files in server
+* Debugging
+
+# Features
+* Client can send photos to server
+* Client can request photos by different means
+    * ask for specific photo by name
+    * ask for all photos by date
+    * ask for all photos that have a tag attached to them
