@@ -5,7 +5,7 @@ import time
 import datetime
 import file
 from os import path
-from re import search
+import re
 
 # gets the date from the computer YYYY-MM-DD
 #returns it as a STRING
@@ -41,6 +41,8 @@ class TCP:
     def receiveImage(self, image_size):
         data = b''
         data += self.sock.recv(image_size)
+        # subtract bytes recved from total image size
+        # and request that many bytes till result equals 0
         while True:
             recv = image_size - len(data)
             if recv != 0:
@@ -86,7 +88,6 @@ class TCP:
         print(confirmation)
         if confirmation == "send data":
             time.sleep(.01)
-            print("fdsjkalfsldjkfhsldkjgzsdklgsdzxk, dljsrnbiu4")
             self.sock.sendall(binary_data)
 
         print(self.receive()) # confirmation message
@@ -97,8 +98,16 @@ class TCP:
                 file_name = input("Enter file name: ")
                 self.send(file_name)
             case "2":
-                date = input("Enter date (YYYY-MM-DD): ")
-                self.send(date)
+                while True:
+                    date = input("Enter date (YYYY-MM-DD): ")
+                    pattern = r'\b(\d{4})-(\d{2})-(\d{2})\b'
+                    match = re.findall(pattern, date)
+                    if match:
+                        print("BREAIK")
+                        break
+                    else:
+                        print("please enter a valid data")
+                    self.send(date)
             case "3":
                 tag = input("Enter tag: ")
                 self.send(tag)
