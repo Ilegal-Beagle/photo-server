@@ -5,7 +5,7 @@ import time
 import datetime
 import file
 from os import path
-import re
+import re, sys
 
 # gets the date from the computer YYYY-MM-DD
 #returns it as a STRING
@@ -148,11 +148,8 @@ def getUserOption(min_value, max_value):
     return option
 
 def main():
-    HOST = "127.0.0.1"
-    PORT = 12345
-
     # set up socket
-    tcp = TCP(HOST, PORT)
+    tcp = TCP(sys.argv[1], int(sys.argv[2]))
     tcp.createSocket()
     tcp.connect()
 

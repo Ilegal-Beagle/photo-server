@@ -6,12 +6,11 @@ import sqlite3
 import time
 import os
 import file
+import sys
 
 write_lock = threading.Lock()
 
 class ServerSocket:
-    DELIMITER = "||DELIMITER||"
-
     def __init__(self, host, port):
         self.HOST = host
         self.PORT = port
@@ -27,6 +26,13 @@ class ServerSocket:
     def acceptClient(self):
         self.c_sock, self.addr = self.sock.accept()
         print(f"accepted client connection {self.addr[1]}")
+        return self.c_sock
+
+class ClientSocket:
+    DELIMITER = "||DELIMITER||"
+
+    def __init__(self, sock):
+        self.c_sock = sock
 
     def send(self, message):
         self.c_sock.sendall(message.encode())
@@ -94,7 +100,6 @@ class ServerSocket:
 
     # loops sendImage for all dirs in matching_files, sends "None" to signify end
     def sendImages(self, matching_files):
-        print(matching_files)
         for file_dir in matching_files:
             try:
                 self.sendImage(file_dir)
@@ -146,7 +151,6 @@ class ServerSocket:
 
         if not matching_files:
             return None
-        print(matching_files)
         return matching_files
 
     # NEEDS TO BE LOCKED
@@ -168,50 +172,48 @@ class ServerSocket:
             matching_files.append(row[0])
         return matching_files
 
-    def clientHandler(self):
-        DIR = "serverFiles/"
+def clientHandler(self):
+    DIR = "serverFiles/"
 
-        while True:
-            option = self.receive()
-            print(option)
-            match option:
-                case '1':
-                    self.createNewImage() 
-                case '2':
-                    option = self.receive() # get option
-                    value = self.receive() # get search parameter
-                    match option:
-                        case "1":
-                            matching_files = self.searchByName(value)
-                        case "2":
-                            matching_files = self.searchByDate(value)
-                        case "3":
-                            matching_files = self.searchByTags(value)
-                        case "4":
-                            pass
-                        case _:
-                            print("Invalid choice received :(")
+    while True:
+        option = self.receive()
+        match option:
+            case '1':
+                self.createNewImage() 
+            case '2':
+                option = self.receive() # get option
+                value = self.receive() # get search parameter
+                match option:
+                    case "1":
+                        matching_files = self.searchByName(value)
+                    case "2":
+                        matching_files = self.searchByDate(value)
+                    case "3":
+                        matching_files = self.searchByTags(value)
+                    case "4":
+                        pass
+                    case _:
+                        print("Invalid choice received :(")
 
-                    if option != "4":
-                        self.sendImages(matching_files)
-                case '3':
-                    file_name = self.receive()
-                    self.removeImage(DIR + file_name)
-                case "4":
-                    print(f"closing client connection {self.addr[0]}")
-                    self.c_sock.close()
-                    break
+                if option != "4":
+                    self.sendImages(matching_files)
+            case '3':
+                file_name = self.receive()
+                self.removeImage(DIR + file_name)
+            case "4":
+                print(f"closing client connection")
+                self.c_sock.close()
+                break
 
 
 def main():
-    HOST, PORT = ["127.0.0.1", 12345]
-    s_sock = ServerSocket(HOST, PORT)
+    s_sock = ServerSocket(sys.argv[1], int(sys.argv[2]))
     s_sock.bindSocket()
     s_sock.listen()
 
     while True:
-        s_sock.acceptClient()
-        thread = threading.Thread(target=s_sock.clientHandler)
+        sock = ClientSocket(s_sock.acceptClient())
+        thread = threading.Thread(target=clientHandler, args=(sock,))
         thread.start()
 
 if __name__ == "__main__":
