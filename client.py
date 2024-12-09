@@ -41,6 +41,8 @@ class TCP:
     def receiveImage(self, image_size):
         data = b''
         data += self.sock.recv(image_size)
+        # subtract bytes recved from total image size
+        # and request that many bytes till result equals 0
         while True:
             recv = image_size - len(data)
             if recv != 0:
@@ -86,7 +88,6 @@ class TCP:
         print(confirmation)
         if confirmation == "send data":
             time.sleep(.01)
-            print("fdsjkalfsldjkfhsldkjgzsdklgsdzxk, dljsrnbiu4")
             self.sock.sendall(binary_data)
 
         print(self.receive()) # confirmation message
