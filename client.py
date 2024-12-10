@@ -37,6 +37,8 @@ class TCP:
             return self.sock.recv(bytes).decode()
         except UnicodeDecodeError:
             print("Couldnt decode message recved.")
+        except TimeoutError:
+            print("message wasnt receieved")
 
     def receiveImage(self, image_size):
         data = b''
@@ -78,18 +80,19 @@ class TCP:
         data_size = str(len(binary_data))
         upload_date = getDate()
         
-        # send metadata
+        # send metadata len and data
         packet = (file_name + DELIM + data_size + DELIM + upload_date + DELIM + tags)
+        self.send(str(len(packet)))
+        time.sleep(.01)
         self.send(packet)
 
-        time.sleep(0.1)
-
-        confirmation = self.receive()
-        print(confirmation)
+        # get the okay from server to send data
+        size = int(self.receive())
+        confirmation = self.receive(size)
         if confirmation == "send data":
             time.sleep(.01)
             self.sock.sendall(binary_data)
-
+        time.sleep(0.1)    
         print(self.receive()) # confirmation message
 
     def getSearchParameters(self, option):
@@ -103,11 +106,10 @@ class TCP:
                     pattern = r'\b(\d{4})-(\d{2})-(\d{2})\b'
                     match = re.findall(pattern, date)
                     if match:
-                        print("BREAIK")
+                        self.send(date)
                         break
                     else:
                         print("please enter a valid data")
-                    self.send(date)
             case "3":
                 tag = input("Enter tag: ")
                 self.send(tag)
@@ -154,7 +156,7 @@ def main():
     tcp.connect()
 
     printTitle()
-    tcp.sock.settimeout(2)
+    tcp.sock.settimeout(10)
 
     while True:
         printMenu()
@@ -168,6 +170,7 @@ def main():
                     if (path.exists(file_name) and
                         file_name.endswith((".png", ".jpg", ".jpeg", ".JPG"))):
                         tags = input("Enter tags to attach to photo (hit enter if none): ")
+                        
                         tcp.sendImage(file_name, tags)
                         break
                     else:

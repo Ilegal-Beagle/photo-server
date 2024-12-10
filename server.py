@@ -57,8 +57,9 @@ class ClientSocket:
     def createNewImage(self):
         PHOTO_DIR = "serverFiles/"
 
-        # get photo data
-        received_packet = self.receive()
+        # get metadata
+        size = int(self.receive())
+        received_packet = self.receive(size)
         name, size, date, tags = received_packet.split(self.DELIMITER)
         dir = PHOTO_DIR + name
         size = int(size)
@@ -74,6 +75,8 @@ class ClientSocket:
                 # if not, create new entry to database
                 result = cur.execute("SELECT * FROM photo WHERE file_name=?", (name,)).fetchone()
                 if result == None:
+                    self.send(str(len("send data")))
+                    time.sleep(.01)
                     self.send("send data") # let client know server is ready to receive data
                     cur.execute("INSERT INTO photo values(?,?,?,?)", (name, dir, date, tags))
                     db.commit()
@@ -84,7 +87,10 @@ class ClientSocket:
 
                     self.send(f"{name} has been added to the server!")
                 else:
+                    self.send(str(len("dont send data")))
+                    time.sleep(.01)
                     self.send("dont send data")
+                    time.sleep(.01)
                     self.send(f"{name} is already in the server!")
 
     def sendImage(self, file_dir):
